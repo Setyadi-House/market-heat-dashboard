@@ -14,13 +14,13 @@ function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;',
 function buildKpis(){
  const t=D.tactical, net=t.net*100;
  const items=[
-  ['Current provisional',fmtNum(D.current,1),D.current_regime,'watch'],
-  ['Last completed',fmtNum(D.last_completed,1),fmtDate(D.last_completed_date),'ok'],
-  ['12M moving average',fmtNum(D.ma12,1),'Visual smoothing only','info'],
-  ['Tactical net',(net>=0?'+':'')+fmtNum(net,1)+'%',`Rally ${Math.round(t.p_rally*100)}% · Decline ${Math.round(t.p_decline*100)}%`,net<-5?'stale':net>5?'ok':'info'],
-  ['Validation',`${D.validation.passed} pass`,`${D.validation.warnings} warning · ${D.validation.failures} fail`,D.validation.failures?'stale':D.validation.warnings?'watch':'ok']
+  ['Current provisional',fmtNum(D.current,1),D.current_regime,'watch','Provisional'],
+  ['Last completed',fmtNum(D.last_completed,1),fmtDate(D.last_completed_date),'ok','Decision anchor'],
+  ['12M moving average',fmtNum(D.ma12,1),'Visual smoothing only','info','Display layer'],
+  ['Tactical asymmetry',(net>=0?'+':'')+fmtNum(net,1)+' pts',`Rally ${fmtNum(t.p_rally*100,1)}/100 · Decline ${fmtNum(t.p_decline*100,1)}/100`,net<-5?'stale':net>5?'ok':'info','Uncalibrated scores'],
+  ['Validation',`${D.validation.passed} pass`,`${D.validation.warnings} warning · ${D.validation.failures} fail`,D.validation.failures?'stale':D.validation.warnings?'watch':'ok',D.validation.failures?'Needs attention':D.validation.warnings?'Warnings disclosed':'Validated']
  ];
- document.getElementById('kpis').innerHTML=items.map(x=>`<div class="kpi"><div class="kpi-label">${x[0]}</div><div class="kpi-value">${x[1]}</div><div class="kpi-meta">${x[2]}</div><span class="pill ${x[3]}">${x[3]==='ok'?'Decision anchor':x[3]==='stale'?'Needs attention':x[3]==='watch'?'Provisional':'Display layer'}</span></div>`).join('');
+ document.getElementById('kpis').innerHTML=items.map(x=>`<div class="kpi"><div class="kpi-label">${x[0]}</div><div class="kpi-value">${x[1]}</div><div class="kpi-meta">${x[2]}</div><span class="pill ${x[3]}">${x[4]}</span></div>`).join('');
 }
 function drawGauge(){
  const score=D.current, svg=document.getElementById('gauge'),cx=130,cy=146,r=105;
@@ -83,10 +83,28 @@ function drawExplorer(){
  }
  document.getElementById('explorerCompareNote').textContent=expYears?`Showing last ${expYears} years`:'Showing all available history';
 }
-function buildFreshness(){document.getElementById('freshnessBody').innerHTML=D.freshness.map(r=>`<tr><td><strong>${esc(r.source)}</strong><div style="font-size:10px;color:var(--muted)">${esc(r.provider||'')}</div></td><td>${esc(r.used_for)}</td><td class="date-cell">${esc(r.latest)}</td><td><span class="pill ${r.class}">${esc(r.status)}</span></td></tr>`).join('');const problem=D.freshness.filter(r=>r.class!=='ok').length;document.getElementById('freshnessBadge').textContent=problem?`${problem} source${problem===1?'':'s'} need attention`:'All sources current';document.getElementById('freshnessBadge').className=`pill ${problem?'watch':'ok'}`}
+function buildFreshness(){
+ const labels={current:'Current',expected_publication_lag:'Expected publication lag',operationally_late:'Operationally late',license_delayed:'License-delayed',stale:'Stale',missing:'Missing'};
+ const classes={current:'ok',expected_publication_lag:'info',operationally_late:'watch',license_delayed:'info',stale:'stale',missing:'stale'};
+ const counts=D.freshness_classification_counts||{};
+ const order=['current','expected_publication_lag','operationally_late','license_delayed','stale','missing'];
+ document.getElementById('freshnessSummary').innerHTML=order.filter(k=>Number(counts[k]||0)>0).map(k=>`<span class="freshness-chip ${classes[k]}"><strong>${counts[k]}</strong> ${labels[k]}</span>`).join('');
+ document.getElementById('freshnessBody').innerHTML=D.freshness.map(r=>`<tr><td><strong>${esc(r.source)}</strong><div class="table-sub">${esc(r.provider||'')}</div></td><td>${esc(r.used_for)}</td><td class="date-cell">${esc(r.latest)}</td><td><div class="update-path">${esc(r.delivery||'Source policy')}</div></td><td><span class="pill ${r.class}">${esc(r.status)}</span><div class="lag-detail">${esc(r.detail||'')}</div></td></tr>`).join('');
+ const action=D.freshness.filter(r=>r.action_required).length;
+ const disclosed=Number(counts.expected_publication_lag||0)+Number(counts.license_delayed||0);
+ const badge=document.getElementById('freshnessBadge');
+ if(action){badge.textContent=`${action} operational gap${action===1?'':'s'}`;badge.className='pill watch'}
+ else if(disclosed){badge.textContent=`No operational gaps · ${disclosed} disclosed constraint${disclosed===1?'':'s'}`;badge.className='pill info'}
+ else{badge.textContent='All sources current';badge.className='pill ok'}
+}
 
 function buildTactical(){
- const t=D.tactical,net=t.net*100;document.getElementById('rallyProb').textContent=(t.p_rally*100).toFixed(1)+'%';document.getElementById('declineProb').textContent=(t.p_decline*100).toFixed(1)+'%';document.getElementById('tacticalNet').textContent=(net>=0?'+':'')+net.toFixed(1)+'%';document.getElementById('tacticalNet').style.color=net<0?'var(--bad)':'var(--good)';document.getElementById('tacticalAuc').textContent=`AUC rally ${Number(t.auc_rally).toFixed(3)} · decline ${Number(t.auc_decline).toFixed(3)} · as of ${t.as_of}`;
+ const t=D.tactical,net=t.net*100;
+ document.getElementById('rallyProb').textContent=(t.p_rally*100).toFixed(1)+' / 100';
+ document.getElementById('declineProb').textContent=(t.p_decline*100).toFixed(1)+' / 100';
+ document.getElementById('tacticalNet').textContent=(net>=0?'+':'')+net.toFixed(1)+' pts';
+ document.getElementById('tacticalNet').style.color=net<0?'var(--bad)':'var(--good)';
+ document.getElementById('tacticalAuc').textContent=`Ranking AUC · rally ${Number(t.auc_rally).toFixed(3)} · decline ${Number(t.auc_decline).toFixed(3)} · as of ${t.as_of}. AUC does not test calibration.`;
  const names={sp_3m_mom:'S&P 500 3M momentum',credit:'Credit spread',credit_3m_chg:'Credit spread 3M change',dgs2_3m_chg:'2Y yield 3M change',nfci:'Financial conditions',breakeven:'10Y breakeven',curve_10y2y:'Yield curve',vix:'VIX'};const entries=Object.entries(t.contributions||{}).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])),mx=Math.max(1e-9,...entries.map(x=>Math.abs(x[1])));document.getElementById('tacticalBars').innerHTML=entries.map(([k,v])=>{const w=Math.abs(v)/mx*48,l=v>=0?50:50-w;return `<div class="tactical-row"><div>${esc(names[k]||k.replaceAll('_',' '))}</div><div class="tactical-track"><div class="tactical-bar" style="left:${l}%;width:${w}%;background:${v>=0?'var(--good)':'var(--bad)'}"></div></div><div class="tactical-value">${v>=0?'+':''}${Number(v).toFixed(3)}</div></div>`}).join('');
 }
 

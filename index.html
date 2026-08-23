@@ -74,26 +74,28 @@
         <div><div class="subchart-title" id="rawChartTitle">Raw history</div><div class="chart-wrap compact" id="rawChartWrap"><svg class="chart" id="rawChart" role="img" aria-label="Raw indicator or pillar history"></svg><div class="tooltip" id="rawTooltip"></div></div></div>
         <div id="pctPanel"><div class="subchart-title">Heat percentile history</div><div class="chart-wrap compact" id="pctChartWrap"><svg class="chart" id="pctChart" role="img" aria-label="Indicator heat-percentile history"></svg><div class="tooltip" id="pctTooltip"></div></div></div>
       </div>
-      <div class="chart-note"><div>Flat segments can indicate carried-forward inputs; the freshness table below reveals the true latest observation date.</div><div id="explorerCompareNote"></div></div>
+      <div class="chart-note"><div>Flat segments can indicate carried-forward inputs; the source-lag table below explains whether the cause is publication, operations, or licensing.</div><div id="explorerCompareNote"></div></div>
     </section>
 
     <section class="card full" id="tacticalCard">
-      <div class="card-head"><div><h2>Tactical 5% Asymmetry — 3-Month Context</h2><div class="card-kicker">Separate directional overlay; not part of the structural Heat Score</div></div><span class="pill info">Model context only</span></div>
+      <div class="card-head"><div><h2>Tactical 5% Asymmetry — Approx. 3-Month Context</h2><div class="card-kicker">63 forward-filled source rows; separate directional overlay, not part of the structural Heat Score</div></div><span class="pill info">Uncalibrated model scores</span></div>
+      <div class="tactical-disclosure"><strong>Read these as propensity scores, not literal probabilities.</strong> Purged validation preserves some ranking information, but private Brier and calibration diagnostics remain cautionary.</div>
       <div class="tactical-grid">
         <div class="tactical-summary">
-          <div class="metric-box"><div class="small">Rally probability</div><div class="big" id="rallyProb">--</div></div>
-          <div class="metric-box"><div class="small">Decline probability</div><div class="big" id="declineProb">--</div></div>
+          <div class="metric-box"><div class="small">Rally propensity score</div><div class="big" id="rallyProb">--</div></div>
+          <div class="metric-box"><div class="small">Decline propensity score</div><div class="big" id="declineProb">--</div></div>
           <div class="metric-box"><div class="small">Net asymmetry</div><div class="big" id="tacticalNet">--</div><div class="why" id="tacticalAuc"></div></div>
         </div>
         <div><div class="subchart-title">Feature contribution · left = downside / right = upside</div><div class="tactical-bars" id="tacticalBars"></div></div>
       </div>
-      <div class="chart-note"><div>Probabilities are directional model outputs, not calibrated certainties.</div><div>The planned validation upgrade adds a 63-trading-day purge and probability calibration.</div></div>
+      <div class="chart-note"><div>Scores are displayed on a 0–100 scale; net asymmetry is the score difference in points.</div><div>Private purged validation and calibration diagnostics update automatically but do not alter production output.</div></div>
     </section>
 
     <section class="card full">
-      <div class="card-head"><div><h2>Data Freshness &amp; Carry-Forward Audit</h2><div class="card-kicker">Automatic source-age transparency</div></div><span class="pill watch" id="freshnessBadge">Source-age watch</span></div>
-      <div class="table-wrap"><table><thead><tr><th>Source</th><th>Used for</th><th>Latest observation</th><th>Status in current score</th></tr></thead><tbody id="freshnessBody"></tbody></table></div>
-      <div class="chart-note"><div>Status is calculated from source-specific expected cadence and publication-lag tolerance.</div><div>Do not hide publication lags behind forward-filled values.</div></div>
+      <div class="card-head"><div><h2>Data Freshness &amp; Source-Lag Classification</h2><div class="card-kicker">Separates provider publication lag, operational delay, licensing constraints, stale data, and missing data</div></div><span class="pill watch" id="freshnessBadge">Source-age watch</span></div>
+      <div class="freshness-summary" id="freshnessSummary" aria-label="Source lag classification summary"></div>
+      <div class="table-wrap"><table><thead><tr><th>Source</th><th>Used for</th><th>Latest stored observation</th><th>Delivery path</th><th>Lag classification</th></tr></thead><tbody id="freshnessBody"></tbody></table></div>
+      <div class="chart-note"><div>Classification uses declared source policy and stored observation age; it does not claim to probe each provider's live latest date.</div><div>Forward-filled values remain visible and are never presented as new observations.</div></div>
     </section>
 
     <section class="card full">
@@ -109,9 +111,9 @@
       <div class="card-head"><div><h2>Methodology &amp; Validation Flags</h2><div class="card-kicker">Negative findings stay visible, not buried in documentation</div></div></div>
       <div class="flag-grid">
         <div class="flag"><div class="label">Comparable 5-pillar history</div><div class="value" id="comparableStart">From Jun 2009</div><div class="desc">Earlier score history uses a changing indicator set, mainly because NAAIM starts later.</div></div>
-        <div class="flag"><div class="label">Publication-lag integrity</div><div class="value">Needs available-at dates</div><div class="desc">Observation dates are not the same as dates the data became knowable.</div></div>
-        <div class="flag"><div class="label">Tactical validation</div><div class="value">Re-run with 63-day purge</div><div class="desc">Prevent label overlap between training and test folds before trusting AUC.</div></div>
-        <div class="flag"><div class="label">Probability calibration</div><div class="value">Not yet shown</div><div class="desc">Add Brier score and reliability chart; AUC alone does not validate probability levels.</div></div>
+        <div class="flag"><div class="label">Publication-lag integrity</div><div class="value">Lag causes disclosed</div><div class="desc">Provider delay, operational delay, and license delay are shown separately; observation dates are not availability dates.</div></div>
+        <div class="flag"><div class="label">Tactical validation</div><div class="value">Purged validation active</div><div class="desc">All five private folds remove 63 boundary training labels before the test interval.</div></div>
+        <div class="flag"><div class="label">Probability calibration</div><div class="value">Uncalibrated scores</div><div class="desc">AUC measures ranking; poor Brier/calibration diagnostics mean the displayed scores are not literal probabilities.</div></div>
       </div>
     </section>
 
