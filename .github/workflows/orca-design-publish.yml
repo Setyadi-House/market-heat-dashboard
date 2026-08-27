@@ -80,16 +80,16 @@ jobs:
 
           required_ids = {
               'dataModeBadge', 'kpiGrid', 'regimeMap', 'marketOutcomeChart',
-              'regimePerfBody', 'networkCanvas', 'heatmapCanvas', 'assetBody',
+              'regimeStatsBody', 'networkSvg', 'heatmapCanvas', 'assetBody',
               'assetDetailPanel', 'crashDrivers', 'rallyDrivers', 'helpPopover'
           }
           missing = [item for item in required_ids if f'id="{item}"' not in html]
           assert not missing, f'missing required interface IDs: {missing}'
           assert '.driver-score-pill' in css
           assert '.asset-role-table td{font-size:10px}' in css
-          assert '#networkCanvas' in css
+          assert '#networkSvg' in css
           assert 'Composite · All estimators' in html
-          assert 'Performance by Regime' in html
+          assert 'performance by regime' in html.lower()
           assert '10Y' in html
           assert 'renderNetwork' in js and 'renderDrivers' in js and 'renderOutcome' in js
           assert "fetch(`data/dashboard.json" in js
