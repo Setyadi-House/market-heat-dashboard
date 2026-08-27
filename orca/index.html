@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>ORCA — Regime Correlation Dashboard</title>
+  <meta name="description" content="ORCA-Lite cross-asset regime, diversification, and correlation dashboard.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="prototype-banner" id="dataBanner">Loading ORCA data…</div>
+  <header class="site-header">
+    <div>
+      <p class="eyebrow">Online Regime Correlation Analyzer</p>
+      <h1>ORCA</h1>
+      <p class="subtitle">Cross-asset diversification, regime, and portfolio-risk context</p>
+    </div>
+    <div class="header-meta">
+      <span id="asOfDate">As of —</span>
+      <span id="modelVersion">Model —</span>
+      <span id="dataSource">Source —</span>
+    </div>
+  </header>
+
+  <nav class="page-nav" aria-label="Dashboard sections">
+    <a href="#decision">Decision Cockpit</a>
+    <a href="#outcome">Market Outcome</a>
+    <a href="#structure">Structural Health</a>
+    <a href="#network">Network</a>
+    <a href="#heatmap">Heatmap</a>
+    <a href="#assets">Asset Roles</a>
+    <a href="#drivers">Model Drivers</a>
+    <a href="#audit">Audit</a>
+  </nav>
+
+  <main>
+    <section class="section" id="decision">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Portfolio decision layer</p>
+          <h2>Decision Cockpit</h2>
+          <p>Rally opportunity and crash risk translated into an explicit risk-budget view.</p>
+        </div>
+        <span class="warning-chip">Risk context, not a deterministic forecast</span>
+      </div>
+
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <div class="decision-grid">
+        <article class="panel decision-map-panel">
+          <div class="panel-title-row">
+            <div>
+              <h3>Joint rally–crash map</h3>
+              <p>Percentile rank relative to the trailing 126 trading days—not literal event probability.</p>
+            </div>
+          </div>
+          <svg id="decisionMap" viewBox="0 0 720 500" role="img" aria-label="Rally and crash percentile regime map"></svg>
+        </article>
+
+        <article class="panel action-panel">
+          <p class="eyebrow">Current interpretation</p>
+          <h3 id="actionHeadline">Loading…</h3>
+          <p class="action-copy" id="actionInterpretation"></p>
+          <div class="action-stat">
+            <span>Suggested equity risk band</span>
+            <strong id="actionExposure">—</strong>
+          </div>
+          <div class="action-stat">
+            <span>Estimator confirmation</span>
+            <strong id="actionConfirmation">—</strong>
+          </div>
+          <div class="callout">
+            <strong>Portfolio action</strong>
+            <p id="actionRecommendation"></p>
+          </div>
+          <div class="callout muted-callout">
+            <strong>Invalidation / improvement condition</strong>
+            <p id="actionInvalidation"></p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="outcome">
+      <div class="section-heading controls-heading">
+        <div>
+          <p class="eyebrow">Signal validation</p>
+          <h2>Regime &amp; Market Outcome Monitor</h2>
+          <p>Compare the Decision Cockpit with what the selected index did before, during, and after each regime.</p>
+        </div>
+        <div class="controls-row">
+          <label class="select-control">Index
+            <select id="outcomeIndex">
+              <option value="SPY">SPY · S&amp;P 500</option>
+              <option value="QQQ">QQQ · Nasdaq 100</option>
+              <option value="IWM">IWM · Russell 2000</option>
+            </select>
+          </label>
+          <div class="segmented" id="periodButtons" aria-label="History range">
+            <button data-years="1">1Y</button><button data-years="2">2Y</button><button data-years="3">3Y</button><button data-years="5" class="active">5Y</button><button data-years="10">10Y</button>
+          </div>
+          <div class="segmented" id="displayButtons" aria-label="Index display">
+            <button data-display="level" class="active">Index Level</button><button data-display="yoy">Rolling 1Y</button>
+          </div>
+          <div class="segmented" id="modeButtons" aria-label="Research mode">
+            <button data-mode="live" class="active">Live View</button><button data-mode="research">Research View</button>
+          </div>
+        </div>
+      </div>
+      <article class="panel chart-panel">
+        <svg id="outcomeChart" viewBox="0 0 1280 760" role="img" aria-label="Index, rally rank, crash rank, and exposure history"></svg>
+        <div class="chart-tooltip" id="outcomeTooltip"></div>
+        <div class="legend" id="outcomeLegend"></div>
+      </article>
+      <article class="panel research-table-panel" id="researchPanel" hidden>
+        <div class="panel-title-row"><div><h3>Performance by regime</h3><p>Ex-post research statistics; not information available in real time.</p></div></div>
+        <div class="table-scroll"><table><thead><tr><th>Regime</th><th>Episodes</th><th>Median next 10D</th><th>Positive hit rate</th><th>Median max drawdown</th><th>Worst next 10D</th></tr></thead><tbody id="regimePerformanceBody"></tbody></table></div>
+      </article>
+    </section>
+
+    <section class="section" id="structure">
+      <div class="section-heading controls-heading">
+        <div>
+          <p class="eyebrow">Diversification health</p>
+          <h2>Simple Structural Health</h2>
+          <p>Four questions that summarize whether 24 assets still provide genuine diversification.</p>
+        </div>
+        <div class="controls-row">
+          <label class="select-control">Correlation estimator
+            <select id="estimatorSelect">
+              <option value="composite">Composite / All</option>
+              <option value="ewm">EWM · 30D half-life</option>
+              <option value="60d">Rolling · 60D</option>
+              <option value="120d">Rolling · 120D</option>
+            </select>
+          </label>
+          <span class="confirmation-chip" id="confirmationChip">—</span>
+        </div>
+      </div>
+      <div class="structural-grid" id="structuralGrid"></div>
+      <details class="advanced-panel panel">
+        <summary>Advanced Structural Metrics</summary>
+        <div class="advanced-grid" id="advancedMetrics"></div>
+      </details>
+    </section>
+
+    <section class="section" id="network">
+      <div class="section-heading controls-heading">
+        <div>
+          <p class="eyebrow">Cross-asset topology</p>
+          <h2>24-Asset Correlation Network</h2>
+          <p>Node size reflects the number of strong relationships; line color preserves correlation direction.</p>
+        </div>
+        <div class="controls-row">
+          <div class="segmented" id="thresholdButtons"><button data-threshold="0.3">0.30</button><button data-threshold="0.5" class="active">0.50</button><button data-threshold="0.7">0.70</button></div>
+          <div class="segmented" id="edgeButtons"><button data-edge="absolute" class="active">Absolute</button><button data-edge="positive">Positive only</button></div>
+        </div>
+      </div>
+      <article class="panel network-panel">
+        <canvas id="networkCanvas" width="1280" height="720" aria-label="24-asset correlation network"></canvas>
+        <div class="chart-tooltip" id="networkTooltip"></div>
+      </article>
+    </section>
+
+    <section class="section" id="heatmap">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Pairwise dependence</p>
+          <h2>Correlation Heatmap</h2>
+          <p>Hover a ticker label to see the full asset name; hover a cell to inspect the signed relationship.</p>
+        </div>
+      </div>
+      <article class="panel heatmap-panel">
+        <div class="heatmap-scroll" id="heatmapScroll">
+          <canvas id="heatmapCanvas" width="1060" height="1060" aria-label="24 by 24 correlation heatmap"></canvas>
+          <div class="chart-tooltip" id="heatmapTooltip"></div>
+        </div>
+        <div class="pair-grid" id="pairGrid"></div>
+      </article>
+    </section>
+
+    <section class="section" id="assets">
+      <div class="section-heading controls-heading">
+        <div>
+          <p class="eyebrow">Duplicate exposures and offsets</p>
+          <h2>Asset Network Role Monitor</h2>
+          <p>Which instruments are system hubs, cluster members, offsets, or peripheral diversifiers?</p>
+        </div>
+        <div class="controls-row">
+          <input id="assetSearch" class="search-input" type="search" placeholder="Search ticker, asset, group, or role…">
+          <label class="select-control">Sort
+            <select id="assetSort"><option value="links">Strong links</option><option value="avg">Average relationship</option><option value="ticker">Ticker</option><option value="return5">5D return</option></select>
+          </label>
+        </div>
+      </div>
+      <article class="panel table-panel">
+        <div class="table-scroll"><table><thead><tr><th>Ticker</th><th>Instrument</th><th>Sleeve</th><th>1D</th><th>5D</th><th>Avg |corr|</th><th>Strong links</th><th>Strongest link</th><th>vs SPY</th><th>20D Δ</th><th>Current network role</th></tr></thead><tbody id="assetBody"></tbody></table></div>
+        <div class="asset-detail" id="assetDetail">Select an asset row for a simple portfolio interpretation.</div>
+      </article>
+    </section>
+
+    <section class="section" id="drivers">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Explanation layer</p>
+          <h2>Model Driver Monitor</h2>
+          <p>What is currently pushing each transparent ORCA-Lite score higher or lower?</p>
+        </div>
+      </div>
+      <div class="driver-grid">
+        <article class="panel driver-panel" id="crashDrivers"></article>
+        <article class="panel driver-panel" id="rallyDrivers"></article>
+      </div>
+      <p class="footnote">Feature contribution explains the current scoring output; it does not establish causality and is not SHAP from the paper's unpublished exact model.</p>
+    </section>
+
+    <section class="section" id="audit">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Research governance</p>
+          <h2>Data Health &amp; Audit</h2>
+          <p>Every production reading should expose source, freshness, alignment policy, and unresolved methodology limitations.</p>
+        </div>
+      </div>
+      <div class="audit-grid" id="auditGrid"></div>
+      <article class="panel methodology-panel">
+        <h3>Methodology status</h3>
+        <p id="methodStatus"></p>
+        <ul id="ambiguityList"></ul>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    <p>ORCA-Lite is a portfolio-risk context tool. It is not investment advice, a deterministic forecast, or proof of future performance.</p>
+  </footer>
+
+  <div class="help-popover" id="helpPopover" role="tooltip"></div>
+  <script src="app.js" defer></script>
+</body>
+</html>

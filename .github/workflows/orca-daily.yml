@@ -1,0 +1,71 @@
+name: Build ORCA dashboard
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 23 * * 1-5"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/orca_build.py"
+      - "requirements-orca.txt"
+      - ".github/workflows/orca-daily.yml"
+      - "orca/index.html"
+      - "orca/app.js"
+      - "orca/styles.css"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: orca-production-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-orca.txt
+      - name: Install dependencies
+        run: pip install -r requirements-orca.txt
+      - name: Build live ORCA bundle from EODHD
+        env:
+          EODHD_API_TOKEN: ${{ secrets.EODHD_API_TOKEN }}
+        run: python scripts/orca_build.py --mode live --output orca/data/dashboard.json
+      - name: Validate production bundle
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('orca/data/dashboard.json')
+          data = json.loads(p.read_text())
+          assert data['meta']['data_mode'] == 'live'
+          assert data['meta']['universe_count'] == 24
+          assert len(data['assets']) == 24
+          assert len(data['history']) > 1000
+          assert all(len(data['estimators'][k]['matrix']) == 24 for k in ('composite','ewm','60d','120d'))
+          print('Production bundle validation passed')
+          PY
+      - name: Commit updated dashboard data
+        run: |
+          if git diff --quiet -- orca/data/dashboard.json; then
+            echo "No dashboard data change to publish."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add orca/data/dashboard.json
+          DATE=$(python -c "import json; print(json.load(open('orca/data/dashboard.json'))['meta']['latest_market_date'])")
+          git commit -m "data(orca): publish ${DATE} dashboard"
+          git push origin main
