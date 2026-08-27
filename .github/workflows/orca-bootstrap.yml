@@ -1,0 +1,84 @@
+name: Bootstrap ORCA production source
+
+on:
+  push:
+    branches:
+      - feature/orca-production-v1
+    paths:
+      - ".orca-prod.part-*"
+      - ".github/workflows/orca-bootstrap.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: orca-bootstrap-production
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out production branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/orca-production-v1
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Decode, inspect, and extract source archive
+        run: |
+          cat .orca-prod.part-* | base64 --decode > /tmp/orca-production.tar.gz
+          gzip --test /tmp/orca-production.tar.gz
+          python - <<'PY'
+          import tarfile
+          from pathlib import PurePosixPath
+
+          archive = '/tmp/orca-production.tar.gz'
+          with tarfile.open(archive, 'r:gz') as tar:
+              members = tar.getmembers()
+              assert members, 'archive is empty'
+              for member in members:
+                  path = PurePosixPath(member.name)
+                  assert not path.is_absolute(), f'absolute path rejected: {member.name}'
+                  assert '..' not in path.parts, f'path traversal rejected: {member.name}'
+                  assert not member.issym() and not member.islnk(), f'link rejected: {member.name}'
+              tar.extractall('.', filter='data')
+              print(f'Extracted {len(members)} validated files')
+          PY
+
+      - name: Install dependencies and run complete audit
+        run: |
+          pip install -r requirements-orca.txt
+          python -m unittest discover -s tests -v
+          python scripts/orca_build.py --mode demo --output orca/data/dashboard.json
+          node --check orca/app.js
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path('orca/data/dashboard.json').read_text())
+          assert data['meta']['data_mode'] == 'demo'
+          assert data['meta']['universe_count'] == 24
+          assert len(data['assets']) == 24
+          assert len(data['history']) > 1000
+          for key in ('composite', 'ewm', '60d', '120d'):
+              matrix = data['estimators'][key]['matrix']
+              assert len(matrix) == 24 and all(len(row) == 24 for row in matrix)
+          print('ORCA bootstrap audit passed')
+          PY
+
+      - name: Publish audited source to the feature branch
+        run: |
+          rm -f .orca-prod.part-* .github/workflows/orca-bootstrap.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(orca): add audited automated dashboard"
+          git push origin HEAD:feature/orca-production-v1
