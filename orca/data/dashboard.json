@@ -2,7 +2,7 @@
   "meta": {
     "schema_version": "1.0.0",
     "model_version": "orca-lite-1.0.0",
-    "generated_at_utc": "2026-08-27T07:59:26+00:00",
+    "generated_at_utc": "2026-08-27T09:21:40+00:00",
     "data_mode": "live",
     "source": "EODHD adjusted close",
     "latest_market_date": "2026-08-26",
